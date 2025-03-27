@@ -1,33 +1,65 @@
-import sys
+import time
+import spidev
 
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow
-from PySide6.QtCore import *
+# We only have SPI bus 0 available to us on the Pi
+bus = 0
 
-from GUI.pesaje_UI import Ui_MainWindow # Código generado por QtDesigner
+#Device is the chip select pin. Set to 0 or 1, depending on the connections
+device = 1
 
-class MainWindow(QMainWindow, Ui_MainWindow):
-    num = 18
+# Enable SPI
+spi = spidev.SpiDev()
 
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
+# Open a connection to a specific bus and device (chip select pin)
+spi.open(bus, device)
 
-        self.lcdNumber.display(self.num)
+# Set SPI speed and mode
+spi.max_speed_hz = 500000
+spi.mode = 0
 
-        self.btnTarar.clicked.connect(self.tarar)
-        self.btnPesar.clicked.connect(self.pesar)
+# Clear display
+msg = [0x76]
+spi.xfer2(msg)
 
-    def tarar(self):
-        self.num = 0
-        self.lcdNumber.display(self.num)
+time.sleep(5)
 
-    def pesar(self):
-        self.num += 1
-        self.lcdNumber.display(self.num)
+# Turn on one segment of each character to show that we can
+# address all of the segments
+i = 1
+while i < 0x7f:
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    # The decimals, colon and apostrophe dots
+    msg = [0x77]
+    msg.append(i)
+    result = spi.xfer2(msg)
+
+    # The first character
+    msg = [0x7b]
+    msg.append(i)
+    result = spi.xfer2(msg)
+
+    # The second character
+    msg = [0x7c]
+    msg.append(i)
+    result = spi.xfer2(msg)
+
+    # The third character
+    msg = [0x7d]
+    msg.append(i)
+    result = spi.xfer2(msg)
+
+    # The last character
+    msg = [0x7e]
+    msg.append(i)
+    result = spi.xfer2(msg)
+
+    # Increment to next segment in each character
+    i <<= 1
+
+    # Pause so we can see them
+    time.sleep(5)
+
+
+# Clear display again
+msg = [0x76]
+spi.xfer2(msg)
