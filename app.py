@@ -1,11 +1,8 @@
 import time
 import spidev
 
-# We only have SPI bus 0 available to us on the Pi
 bus = 0
-
-#Device is the chip select pin. Set to 0 or 1, depending on the connections
-device = 1
+device = 0
 
 # Enable SPI
 spi = spidev.SpiDev()
@@ -17,6 +14,9 @@ spi.open(bus, device)
 spi.max_speed_hz = 500000
 spi.mode = 0
 
+################################################################
+############## Codigo para Display 7segmentos SPI ##############
+################################################################
 # Clear display
 msg = [0x76]
 spi.xfer2(msg)
