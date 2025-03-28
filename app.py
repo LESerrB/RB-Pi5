@@ -25,39 +25,11 @@ time.sleep(5)
 
 # Turn on one segment of each character to show that we can
 # address all of the segments
-i = 1
-while i < 0x7f:
 
+while 1:
     # The decimals, colon and apostrophe dots
     msg = [0x77]
-    msg.append(i)
     result = spi.xfer2(msg)
-
-    # The first character
-    msg = [0x7b]
-    msg.append(i)
-    result = spi.xfer2(msg)
-
-    # The second character
-    msg = [0x7c]
-    msg.append(i)
-    result = spi.xfer2(msg)
-
-    # The third character
-    msg = [0x7d]
-    msg.append(i)
-    result = spi.xfer2(msg)
-
-    # The last character
-    msg = [0x7e]
-    msg.append(i)
-    result = spi.xfer2(msg)
-
-    # Increment to next segment in each character
-    i <<= 1
-
-    # Pause so we can see them
-    time.sleep(5)
 
 
 # Clear display again
