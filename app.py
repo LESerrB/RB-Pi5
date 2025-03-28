@@ -1,37 +1,47 @@
+import RPi.GPIO as GPIO
 import time
-import spidev
 
-bus = 0
-device = 0
+# Pines GPIO para la comunicación con el HX711
+HX711_DOUT = 5  # Pin de datos
+HX711_SCK = 6   # Pin de reloj
 
-# Enable SPI
-spi = spidev.SpiDev()
+# Configuración de GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(HX711_DOUT, GPIO.IN)
+GPIO.setup(HX711_SCK, GPIO.OUT)
 
-# Open a connection to a specific bus and device (chip select pin)
-spi.open(bus, device)
+def leer_hx711():
+    """Lee el valor del HX711."""
 
-# Set SPI speed and mode
-spi.max_speed_hz = 500000
-spi.mode = 0
+    # Espera a que el HX711 esté listo
+    while GPIO.input(HX711_DOUT):
+        time.sleep(0.001)
 
-################################################################
-############## Codigo para Display 7segmentos SPI ##############
-################################################################
-# Clear display
-msg = [0x76]
-spi.xfer2(msg)
+    # Lee los 24 bits de datos
+    datos = 0
+    for _ in range(24):
+        GPIO.output(HX711_SCK, GPIO.HIGH)
+        datos = (datos << 1) | GPIO.input(HX711_DOUT)
+        GPIO.output(HX711_SCK, GPIO.LOW)
 
-time.sleep(5)
+    # Genera el pulso 25 para finalizar la lectura
+    GPIO.output(HX711_SCK, GPIO.HIGH)
+    GPIO.output(HX711_SCK, GPIO.LOW)
 
-# Turn on one segment of each character to show that we can
-# address all of the segments
+    # Convierte el valor a un entero con signo
+    if datos & 0x800000:
+        datos |= 0xFF000000
 
-while 1:
-    # The decimals, colon and apostrophe dots
-    msg = [0x77]
-    result = spi.xfer2(msg)
+    return datos
 
+try:
+    while True:
+        valor = leer_hx711()
+        print(f"Valor del HX711: {valor}")
+        time.sleep(1)
 
-# Clear display again
-msg = [0x76]
-spi.xfer2(msg)
+except KeyboardInterrupt:
+    print("Programa terminado.")
+
+finally:
+    GPIO.cleanup()
