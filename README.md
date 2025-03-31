@@ -15,3 +15,4 @@ Este proyecto se crea para probar las funciones de la Raspberry Pi 5 con Python 
 
 - Se comienzan las pruebas con los buses SPI de los GPIO de la tarjeta
 - Funcionamiento del bus SPI0 (GPIO 10, 9 11, 8, 7)
+- Comprobación de envío de datos de la Raspberry pi a Arduino Nano
