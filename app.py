@@ -24,11 +24,17 @@ print("MSG: ", msg)
 resp = spi.xfer2(msg)
 print("Resp: ", resp)
 
+msg = [0x88, 0x8A, 0x8C]
+resp = spi.xfer2(msg)
+dig_T1 = resp[0]
+dig_T2 = resp[1]
+dig_T3 = resp[2]
+
 while True:
     print("Status: ")
     msg = [0xF3]
     resp = spi.xfer2(msg)
-    print("resp: " + resp + "[0]: " + resp[0] + " [1]: " + resp[1])
+    print("resp: ", resp, " | [0]: ", resp[0])
     print(1 & resp[0])
 
     if (8 & resp[0]) == 0:
@@ -56,6 +62,13 @@ while True:
     print(resp)
     adc_T = ((resp[0] << 16) | (resp[1] << 8) | resp[2]) >> 4
     print(adc_T)
+    # Returns tempe rature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
+    # t_fine carries fine temperature as global value
+    var1 = ((((adc_T>>3) - (dig_T1<<1))) * (dig_T2)) >> 11;
+    var2 = (((((adc_T>>4) - (dig_T1)) * ((adc_T>>4) - (dig_T1)))>> 12) * (dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    T = (t_fine * 5 + 128) >> 8;
+    print("Temp: ", T = T / 100)
 
     # print("\n================================\n")
 
@@ -66,13 +79,6 @@ while True:
 
     # print("\n================================\n")
     time.sleep(1)
-
-# Returns tempe rature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
-# t_fine carries fine temperature as global value
-# var1 = ((((adc_T>>3) - (dig_T1<<1))) * (dig_T2)) >> 11;
-# var2 = (((((adc_T>>4) - (dig_T1)) * ((adc_T>>4) - (dig_T1)))>> 12) * (dig_T3)) >> 14;
-# t_fine = var1 + var2;
-# T = (t_fine * 5 + 128) >> 8;
 
 # Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
 #Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
