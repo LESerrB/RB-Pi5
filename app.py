@@ -11,8 +11,8 @@ spi = spidev.SpiDev()
 spi.open(bus, device)
 
 # Set SPI speed and mode
-# spi.max_speed_hz = 5000 #5KHZ
-# spi.mode = 0
+spi.max_speed_hz = 1000000 #1MHZ
+spi.mode = 0
 
 ################################################################
 ############## Codigo para Display 7segmentos SPI ##############
@@ -20,8 +20,11 @@ spi.open(bus, device)
 # Id query
 while True:
     print("ID register: ")
-    msg = spi.xfer2([0xD0, 0x00])
-    time.sleep(1)
+    msg = [0xD0, 0x00]
+    print("MSG: ", msg)
+    resp = spi.xfer2(msg)
+    print("Resp: ", resp)
+    # time.sleep(1)
 
 # Turn on one segment of each character to show that we can
 # address all of the segments
