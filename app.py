@@ -25,6 +25,11 @@ resp = spi.xfer2(msg)
 print("Resp: ", resp)
 
 while True:
+    print("Status: ")
+    msg = [0xF3, 0x00]
+    resp = spi.xfer2(msg)
+    print(resp)
+
     print("Humedad: ")
     msg = [0xFD, 0xFE]
     resp = spi.xfer2(msg)
@@ -37,12 +42,12 @@ while True:
     resp = spi.xfer2(msg)
     print(resp)
 
-    
     print("\n================================\n")
 
     print("Presion: ")
     msg = [0xF7, 0xF8, 0xF9]
     resp = spi.xfer2(msg)
     print(resp)
-    
-    time.sleep(0.5)
+
+    print("\n================================\n")
+    time.sleep(1)
