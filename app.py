@@ -28,7 +28,10 @@ while True:
     print("Status: ")
     msg = [0xF3, 0x00]
     resp = spi.xfer2(msg)
-    print(resp)
+    print("resp: " + resp + "[0]: " + resp[0] + " [1]: " + resp[1])
+    # print("0 updated", 1 & resp[0])
+
+    print("\n================================\n")
 
     print("Humedad: ")
     msg = [0xFD, 0xFE]
