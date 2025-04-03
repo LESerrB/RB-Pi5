@@ -18,18 +18,31 @@ spi.mode = 0
 ############## Codigo para Display 7segmentos SPI ##############
 ################################################################
 # Id query
+print("ID register: ")
+msg = [0xD0]
+print("MSG: ", msg)
+resp = spi.xfer2(msg)
+print("Resp: ", resp)
+
 while True:
-    print("ID register: ")
-    msg = [0xD0, 0x00]
-    print("MSG: ", msg)
+    print("Humedad: ")
+    msg = [0xFD, 0xFE]
     resp = spi.xfer2(msg)
-    print("Resp: ", resp)
-    # time.sleep(1)
+    print(resp)
 
-# Turn on one segment of each character to show that we can
-# address all of the segments
+    print("\n================================\n")
 
-# while 1:
-#     # The decimals, colon and apostrophe dots
-#     msg = [0x77]
-#     result = spi.xfer2(msg)
+    print("Temperatura: ")
+    msg = [0xFA, 0xFB, 0xFC]
+    resp = spi.xfer2(msg)
+    print(resp)
+
+    
+    print("\n================================\n")
+
+    print("Presion: ")
+    msg = [0xF7, 0xF8, 0xF9]
+    resp = spi.xfer2(msg)
+    print(resp)
+    
+    time.sleep(0.5)
