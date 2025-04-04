@@ -1,122 +1,92 @@
 import time
 import spidev
+import RPi.GPIO as GPIO
 
-bus = 0
-device = 0
+# Configura los pines de control (RES, DC, CS)
+RES_PIN = 25
+DC_PIN = 24
+CS_PIN = 8
 
-# Enable SPI
+# Configura la Raspberry Pi para usar los pines GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(RES_PIN, GPIO.OUT)
+GPIO.setup(DC_PIN, GPIO.OUT)
+GPIO.setup(CS_PIN, GPIO.OUT)
+
+# Inicializa el bus SPI
 spi = spidev.SpiDev()
+spi.open(0, 0)  # Bus SPI 0, dispositivo 0
+spi.max_speed_hz = 8000000  # Velocidad SPI (ajusta según sea necesario)
+spi.mode = 0b00  # Modo SPI 0 (CPOL=0, CPHA=0)
 
-# Open a connection to a specific bus and device (chip select pin)
-spi.open(bus, device)
+def reset_display():
+    GPIO.output(RES_PIN, GPIO.LOW)
+    time.sleep(0.1)
+    GPIO.output(RES_PIN, GPIO.HIGH)
+    time.sleep(0.1)
 
-# Set SPI speed and mode
-spi.max_speed_hz = 1000000 #1MHZ
-spi.mode = 0
+def send_command(command):
+    GPIO.output(DC_PIN, GPIO.LOW)  # Modo comando
+    GPIO.output(CS_PIN, GPIO.LOW)  # Habilitar CS
+    spi.xfer([command])  # Enviar el comando SPI
+    GPIO.output(CS_PIN, GPIO.HIGH)  # Deshabilitar CS
 
-################################################################
-############## Codigo para Display 7segmentos SPI ##############
-################################################################
-# Id query
-print("ID register: ")
-msg = [0xD0]
-print("MSG: ", msg)
-resp = spi.xfer2(msg)
-print("Resp: ", resp)
+def send_data(data):
+    GPIO.output(DC_PIN, GPIO.HIGH)  # Modo datos
+    GPIO.output(CS_PIN, GPIO.LOW)   # Habilitar CS
+    spi.xfer([data])  # Enviar datos SPI
+    GPIO.output(CS_PIN, GPIO.HIGH)  # Deshabilitar CS
 
-dig_T1 = spi.xfer2([0x88, 0x89])
-dig_T2 = spi.xfer2([0x88, 0x8A])
-dig_T3 = spi.xfer2([0x8C, 0x8D])
-print("DIG: ", dig_T1, dig_T2, dig_T3)
+def initialize_display():
+    reset_display()
 
-while True:
-    print("Status: ")
-    msg = [0xF3]
-    resp = spi.xfer2(msg)
-    print("resp: ", resp, " | [0]: ", resp[0])
-    print(1 & resp[0])
+    # Inicializa el display SSD1312 con comandos específicos
+    send_command(0xAE)  # Apagar el display
+    send_command(0xD5)  # Configura el reloj
+    send_command(0x80)  # Reloj 100Hz
+    send_command(0xA8)  # Configura el multiplex
+    send_command(0x3F)  # Rango multiplex
+    send_command(0xD3)  # Desplazamiento de la posición
+    send_command(0x00)  # No hay desplazamiento
+    send_command(0x40)  # Dirección de inicio
+    send_command(0x8D)  # Activar la carga de voltaje
+    send_command(0x14)  # Configura el voltaje
+    send_command(0xA1)  # Dirección de segmento
+    send_command(0xC8)  # Modo de la comutación de los pines
+    send_command(0xDA)  # Configuración de los pines de la pantalla
+    send_command(0x12)  # Comando de los pines de la pantalla
+    send_command(0x81)  # Control de contraste
+    send_command(0x7F)  # Contraste medio
+    send_command(0xD9)  # Configuración de pre-carga
+    send_command(0xF1)  # Pre-carga a 0xF1
+    send_command(0xDB)  # Configuración de la resistencia de la carga
+    send_command(0x40)  # Resistencia a 0x40
+    send_command(0xA4)  # Mostrar la imagen sin invertir
+    send_command(0xA6)  # Configura la pantalla para no invertir
+    send_command(0xAF)  # Enciende el display
 
-    if (8 & resp[0]) == 0:
-        print("Transfiriendo...")
-    else:
-        print("Midiendo...")
+def clear_display():
+    for page in range(8):
+        send_command(0xB0 + page)  # Selecciona la página de memoria
+        send_command(0x00)  # Dirección columna baja
+        send_command(0x10)  # Dirección columna alta
+        for i in range(128):  # Limpia una página de 128 píxeles
+            send_data(0x00)
 
-    if (1 & resp[0]) == 0:
-        print("Copiado al registro, se puede leer")
-    else:
-        print("Copiando...")
+def display_text(text):
+    # Esta función solo muestra texto simplificado (reemplazar con código para controlar píxeles de texto)
+    for i in range(len(text)):
+        send_data(ord(text[i]))
 
-    print("\n================================\n")
+if __name__ == "__main__":
+    try:
+        initialize_display()  # Inicializa el display
+        clear_display()  # Limpia el display
 
-    # print("Humedad: ")
-    # msg = [0xFD, 0xFE]
-    # resp = spi.xfer2("FD: ", msg[0], "FE: ", msg[1])
-    # print(resp)
+        # Muestra un texto simplificado
+        display_text("Hola Mundo")
 
-    # print("\n================================\n")
+        time.sleep(10)  # Muestra el texto durante 10 segundos
 
-    print("Temperatura: ")
-    msg = [0xFA, 0xFB, 0xFC]
-    resp = spi.xfer2(msg)
-    print(resp)
-    adc_T = ((resp[0] << 16) | (resp[1] << 8) | resp[2]) >> 4
-    print(adc_T)
-    # Returns tempe rature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
-    # t_fine carries fine temperature as global value
-    var1 = ((((adc_T>>3) - (dig_T1<<1))) * (dig_T2)) >> 11;
-    var2 = (((((adc_T>>4) - (dig_T1)) * ((adc_T>>4) - (dig_T1)))>> 12) * (dig_T3)) >> 14;
-    t_fine = var1 + var2;
-    T = (t_fine * 5 + 128) >> 8;
-    print("Temp: ", T = T / 100)
-
-    # print("\n================================\n")
-
-    # print("Presion: ")
-    # msg = [0xF7, 0xF8, 0xF9]
-    # resp = spi.xfer2(msg)
-    # print(resp)
-
-    # print("\n================================\n")
-    time.sleep(1)
-
-# Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
-#Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
-# BME280_U32_t BME280_compensate_P_int64(BME280_S32_t adc_P){
-#     BME280_S64_t var1, var2, p;
-#     var1 = ((BME280_S64_t)t_fine) – 128000;
-#     var2 = var1 * var1 * (BME280_S64_t)dig_P6;
-#     var2 = var2 + ((var1*(BME280_S64_t)dig_P5)<<17);
-#     var2 = var2 + (((BME280_S64_t)dig_P4)<<35);
-#     var1 = ((var1 * var1 * (BME280_S64_t)dig_P3)>>8) + ((var1 * (BME280_S64_t)dig_P2)<<12);
-#     var1 = (((((BME280_S64_t)1)<<47)+var1))*((BME280_S64_t)dig_P1)>>33;
-
-#     if (var1 == 0)
-#         return 0; #avoid exception caused by division by zero
-
-#     p = 1048576-adc_P;
-#     p = (((p<<31)-var2)*3125)/var1;
-#     var1 = (((BME280_S64_t)dig_P9) * (p>>13) * (p>>13)) >> 25;
-#     var2 = (((BME280_S64_t)dig_P8) * p) >> 19;
-#     p = ((p + var1 + var2) >> 8) + (((BME280_S64_t)dig_P7)<<4);
-
-#     return (BME280_U32_t)p;
-# }
-
-#Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
-#Output value of “47445” represents 47445/1024 = 46.333 %RH
-# BME280_U32_t bme280_compensate_H_int32(BME280_S32_t adc_H){
-#     BME280_S32_t v_x1_u32r;
-#     v_x1_u32r = (t_fine – ((BME280_S32_t)76800));
-#     Bosch Sensortec | BME280 Data sheet 26 | 60
-#     Modifications reserved | Data subject to change without notice Document number: BST-BME280-DS001-23 Revision_1.23_012022
-#     v_x1_u32r = (((((adc_H << 14) – (((BME280_S32_t)dig_H4) << 20) – (((BME280_S32_t)dig_H5) *
-#     v_x1_u32r)) + ((BME280_S32_t)16384)) >> 15) * (((((((v_x1_u32r *
-#     ((BME280_S32_t)dig_H6)) >> 10) * (((v_x1_u32r * ((BME280_S32_t)dig_H3)) >> 11) +
-#     ((BME280_S32_t)32768))) >> 10) + ((BME280_S32_t)2097152)) * ((BME280_S32_t)dig_H2) +
-#     8192) >> 14));
-#     v_x1_u32r = (v_x1_u32r – (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) *
-#     ((BME280_S32_t)dig_H1)) >> 4));
-#     v_x1_u32r = (v_x1_u32r < 0 ? 0 : v_x1_u32r);
-#     v_x1_u32r = (v_x1_u32r > 419430400 ? 419430400 : v_x1_u32r);
-#     return (BME280_U32_t)(v_x1_u32r>>12);
-# }
+    finally:
+        GPIO.cleanup()  # Limpia los pines GPIO al finalizar
