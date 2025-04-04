@@ -24,11 +24,10 @@ print("MSG: ", msg)
 resp = spi.xfer2(msg)
 print("Resp: ", resp)
 
-msg = [0x88, 0x8A, 0x8C]
-resp = spi.xfer2(msg)
-dig_T1 = resp[0]
-dig_T2 = resp[1]
-dig_T3 = resp[2]
+dig_T1 = spi.xfer2([0x88, 0x89])
+dig_T2 = spi.xfer2([0x88, 0x8A])
+dig_T3 = spi.xfer2([0x8C, 0x8D])
+print("DIG: ", dig_T1, dig_T2, dig_T3)
 
 while True:
     print("Status: ")
